@@ -1,0 +1,192 @@
+# Market Research Configuration
+# Copy this file to settings.yaml and fill in your values
+
+# General settings
+report:
+  name: "KAVAK Market Research"
+  default_period: "monthly"
+  output_formats:
+    - excel
+    - json
+    - pdf
+
+# Data Sources
+sources:
+  inegi:
+    api_url: "https://www.inegi.org.mx/app/api/indicadores/desarrolladores/jsonxml"
+    api_token: "${INEGI_API_TOKEN}"
+    enabled: true
+
+  amia:
+    publications_url: "https://www.amia.com.mx/publicaciones/"
+    enabled: true
+
+  kavak:
+    # Option A: Database
+    database:
+      host: "${KAVAK_DB_HOST}"
+      port: 5432
+      database: "${KAVAK_DB_NAME}"
+      user: "${KAVAK_DB_USER}"
+      password: "${KAVAK_DB_PASSWORD}"
+
+    # Option B: API
+    api:
+      base_url: "${KAVAK_API_URL}"
+      api_key: "${KAVAK_API_KEY}"
+
+    # Option C: File exports
+    file_exports:
+      path: "./data/raw/kavak/"
+      format: "csv"  # or json
+
+# Geographic Configuration
+geography:
+  tier1_cities:
+    - code: "MX-CMX"
+      name: "Ciudad de México"
+      state: "Ciudad de México"
+    - code: "MX-GDL"
+      name: "Guadalajara"
+      state: "Jalisco"
+    - code: "MX-MTY"
+      name: "Monterrey"
+      state: "Nuevo León"
+    - code: "MX-PUE"
+      name: "Puebla"
+      state: "Puebla"
+    - code: "MX-QRO"
+      name: "Querétaro"
+      state: "Querétaro"
+    - code: "MX-LEO"
+      name: "León"
+      state: "Guanajuato"
+    - code: "MX-MID"
+      name: "Mérida"
+      state: "Yucatán"
+    - code: "MX-TIJ"
+      name: "Tijuana"
+      state: "Baja California"
+
+  tier2_cities:
+    - code: "MX-AGS"
+      name: "Aguascalientes"
+      state: "Aguascalientes"
+    - code: "MX-SLP"
+      name: "San Luis Potosí"
+      state: "San Luis Potosí"
+    - code: "MX-TOL"
+      name: "Toluca"
+      state: "Estado de México"
+    - code: "MX-CUN"
+      name: "Cancún"
+      state: "Quintana Roo"
+
+# Price Buckets (MXN)
+price_buckets:
+  - name: "entry"
+    label: "Entry Level"
+    min: 0
+    max: 150000
+  - name: "economy"
+    label: "Economy"
+    min: 150000
+    max: 300000
+  - name: "mid_range"
+    label: "Mid-Range"
+    min: 300000
+    max: 500000
+  - name: "premium"
+    label: "Premium"
+    min: 500000
+    max: 800000
+  - name: "luxury"
+    label: "Luxury"
+    min: 800000
+    max: 1200000
+  - name: "ultra"
+    label: "Ultra Luxury"
+    min: 1200000
+    max: null
+
+# Vehicle Types Mapping
+vehicle_types:
+  sedan:
+    keywords: ["sedan", "sedán"]
+    examples: ["Versa", "Jetta", "Civic", "Corolla"]
+  suv_compact:
+    keywords: ["suv", "crossover"]
+    examples: ["HR-V", "CX-30", "Kicks", "Venue"]
+  suv_mid:
+    keywords: ["suv", "sport utility"]
+    examples: ["CR-V", "RAV4", "Tiguan", "Equinox"]
+  suv_full:
+    keywords: ["suv full", "large suv"]
+    examples: ["Pilot", "Tahoe", "Durango", "Expedition"]
+  pickup:
+    keywords: ["pickup", "truck", "camioneta"]
+    examples: ["Hilux", "Ranger", "Colorado", "Frontier"]
+  hatchback:
+    keywords: ["hatchback", "hatch"]
+    examples: ["Polo", "Fit", "Mazda 2", "Rio"]
+  van:
+    keywords: ["van", "minivan"]
+    examples: ["Sienna", "Odyssey", "Pacifica"]
+  coupe:
+    keywords: ["coupe", "coupé", "sports"]
+    examples: ["Mustang", "Camaro", "86"]
+
+# Brand Tiers
+brand_tiers:
+  volume:
+    - Nissan
+    - Chevrolet
+    - Volkswagen
+    - Toyota
+    - Honda
+    - Kia
+    - Hyundai
+    - Mazda
+    - Ford
+    - Suzuki
+    - Renault
+    - SEAT
+    - MG
+    - JAC
+  premium:
+    - BMW
+    - Mercedes-Benz
+    - Audi
+    - Volvo
+    - MINI
+    - Acura
+    - Infiniti
+  luxury:
+    - Porsche
+    - Land Rover
+    - Lexus
+    - Jaguar
+    - Maserati
+    - Ferrari
+    - Lamborghini
+
+# Analysis Settings
+analysis:
+  historical_months: 24  # How far back to go for trends
+  yoy_comparison: true
+  mom_comparison: true
+  calculate_market_share: true
+  calculate_price_trends: true
+
+# Output Settings
+output:
+  path: "./data/outputs/"
+  excel:
+    include_charts: true
+    sheet_per_city: true
+  pdf:
+    include_executive_summary: true
+    include_charts: true
+  json:
+    pretty_print: true
+    include_metadata: true
