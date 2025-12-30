@@ -86,6 +86,61 @@
 
 ---
 
+## 1.5 New Car Pricing Sources
+
+### Autocosmos Mexico
+
+**URL**: https://www.autocosmos.com.mx/catalogo
+
+**Description**: Comprehensive new car catalog with MSRP prices for all brands sold in Mexico.
+
+**Data Available**:
+- Full catalog of new vehicles
+- MSRP prices by trim/version
+- Specifications and features
+- All major brands
+
+**Access Method**: Web scraping (structured HTML)
+
+**Sample Data Points 2025**:
+- Chevrolet Aveo Hatchback 2025: desde $277,400 MXN
+- Mitsubishi Mirage G4 2025: desde $294,400 MXN
+- Hyundai Grand i10 Sedán 2025: desde $297,700 MXN
+
+---
+
+### CarsXE API (Optional)
+
+**URL**: https://api.carsxe.com
+
+**Description**: Vehicle valuation API with coverage for US, Canada, and Mexico.
+
+**Data Available**:
+- Retail value (current selling prices)
+- Trade-in value (dealer acquisition thresholds)
+- Auction data and trends
+- VIN-based instant valuations
+
+**Access Method**: REST API (paid subscription)
+
+---
+
+### Marketcheck API (Optional)
+
+**URL**: https://api.marketcheck.com
+
+**Description**: Large-scale automotive inventory and pricing database.
+
+**Data Available**:
+- New and used vehicle inventory
+- Market research data
+- Build specifications
+- Historical pricing trends
+
+**Access Method**: REST API (paid subscription)
+
+---
+
 ## 2. Used Cars - KAVAK Internal Data
 
 ### 2.1 Required Data Feeds

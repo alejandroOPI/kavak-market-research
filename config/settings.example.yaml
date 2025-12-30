@@ -7,38 +7,54 @@ report:
   default_period: "monthly"
   output_formats:
     - excel
-    - json
     - pdf
+    - csv
 
 # Data Sources
 sources:
+  # ===== NEW CARS =====
   inegi:
+    description: "INEGI - Production, sales volumes (no prices)"
     api_url: "https://www.inegi.org.mx/app/api/indicadores/desarrolladores/jsonxml"
     api_token: "${INEGI_API_TOKEN}"
     enabled: true
 
   amia:
+    description: "AMIA - Industry association bulletins"
     publications_url: "https://www.amia.com.mx/publicaciones/"
     enabled: true
 
-  kavak:
-    # Option A: Database
-    database:
-      host: "${KAVAK_DB_HOST}"
-      port: 5432
-      database: "${KAVAK_DB_NAME}"
-      user: "${KAVAK_DB_USER}"
-      password: "${KAVAK_DB_PASSWORD}"
+  # New car pricing sources
+  new_car_pricing:
+    autocosmos:
+      description: "Autocosmos - New car catalog with MSRP prices"
+      base_url: "https://www.autocosmos.com.mx"
+      catalog_url: "https://www.autocosmos.com.mx/catalogo"
+      enabled: true
 
-    # Option B: API
+    carsxe:
+      description: "CarsXE API - Vehicle valuations for US/Canada/Mexico"
+      api_url: "https://api.carsxe.com"
+      api_key: "${CARSXE_API_KEY}"
+      enabled: false  # Enable if API key available
+
+    marketcheck:
+      description: "Marketcheck - Automotive inventory and pricing data"
+      api_url: "https://api.marketcheck.com"
+      api_key: "${MARKETCHECK_API_KEY}"
+      enabled: false  # Enable if API key available
+
+  # ===== USED CARS =====
+  kavak:
+    description: "KAVAK internal data - Used car inventory, pricing, sales"
     api:
       base_url: "${KAVAK_API_URL}"
       api_key: "${KAVAK_API_KEY}"
-
-    # Option C: File exports
-    file_exports:
-      path: "./data/raw/kavak/"
-      format: "csv"  # or json
+      endpoints:
+        inventory: "/v1/inventory"
+        pricing: "/v1/pricing"
+        sales: "/v1/sales"
+        demand: "/v1/demand"
 
 # Geographic Configuration
 geography:
@@ -67,20 +83,32 @@ geography:
     - code: "MX-TIJ"
       name: "Tijuana"
       state: "Baja California"
-
-  tier2_cities:
     - code: "MX-AGS"
       name: "Aguascalientes"
       state: "Aguascalientes"
+    - code: "MX-CUN"
+      name: "Cancún"
+      state: "Quintana Roo"
+    - code: "MX-CVA"
+      name: "Cuernavaca"
+      state: "Morelos"
+    - code: "MX-MLI"
+      name: "Morelia"
+      state: "Michoacán"
+
+  tier2_cities:
     - code: "MX-SLP"
       name: "San Luis Potosí"
       state: "San Luis Potosí"
     - code: "MX-TOL"
       name: "Toluca"
       state: "Estado de México"
-    - code: "MX-CUN"
-      name: "Cancún"
-      state: "Quintana Roo"
+    - code: "MX-CHI"
+      name: "Chihuahua"
+      state: "Chihuahua"
+    - code: "MX-HER"
+      name: "Hermosillo"
+      state: "Sonora"
 
 # Price Buckets (MXN)
 price_buckets:
@@ -153,6 +181,9 @@ brand_tiers:
     - SEAT
     - MG
     - JAC
+    - Mitsubishi
+    - BAIC
+    - Chirey
   premium:
     - BMW
     - Mercedes-Benz
@@ -161,6 +192,8 @@ brand_tiers:
     - MINI
     - Acura
     - Infiniti
+    - Lincoln
+    - Cadillac
   luxury:
     - Porsche
     - Land Rover
@@ -169,14 +202,18 @@ brand_tiers:
     - Maserati
     - Ferrari
     - Lamborghini
+    - Bentley
+    - Aston Martin
 
 # Analysis Settings
 analysis:
-  historical_months: 24  # How far back to go for trends
+  start_year: 2025
+  start_month: 1
   yoy_comparison: true
   mom_comparison: true
   calculate_market_share: true
   calculate_price_trends: true
+  include_ev_segment: true
 
 # Output Settings
 output:
@@ -184,9 +221,13 @@ output:
   excel:
     include_charts: true
     sheet_per_city: true
+    sheet_per_segment: true
+    filename_template: "kavak_market_research_{period}.xlsx"
   pdf:
     include_executive_summary: true
     include_charts: true
-  json:
-    pretty_print: true
-    include_metadata: true
+    filename_template: "kavak_market_research_{period}.pdf"
+  csv:
+    separate_files: true  # One CSV per dimension (city, brand, etc.)
+    combined_file: true   # Also create one combined CSV
+    filename_template: "kavak_market_research_{dimension}_{period}.csv"
