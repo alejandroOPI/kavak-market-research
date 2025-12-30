@@ -1,18 +1,20 @@
 ---
 name: market-research
-description: This skill should be used when the user asks to "run market research", "generate market report", "collect car data", "analyze new car prices", "analyze used car market", "get INEGI data", "scrape Autocosmos", "monthly market report", or needs automotive market analysis for Mexico. Provides comprehensive market research capabilities for new and used cars.
-version: 0.1.0
+description: This skill should be used when the user asks to "run market research", "generate market report", "collect car data", "analyze new car prices", "analyze used car market", "get INEGI data", "scrape Autocosmos", "monthly market report", "sales by state", "geographic analysis", or needs automotive market analysis for Mexico. Provides comprehensive market research capabilities for new and used cars.
+version: 0.2.0
 ---
 
 # KAVAK Market Research Skill
 
-This skill provides automated market research capabilities for the Mexican automotive market, covering both new and used cars.
+This skill provides automated market research capabilities for the Mexican automotive market, covering both new and used cars with geographic (state/city) breakdowns.
 
 ## Purpose
 
 Generate monthly market research reports analyzing:
 - New car prices and availability from Autocosmos
 - Production and sales data from INEGI
+- Vehicle registrations by state from INEGI VMRC
+- EV/Hybrid sales estimates by state
 - Used car inventory and pricing from KAVAK (when API configured)
 
 ## When to Use
@@ -22,6 +24,7 @@ Trigger this skill when:
 - Generating market analysis reports
 - Comparing new vs used car prices
 - Analyzing market by brand, segment, city, or price bucket
+- Getting geographic/state-level vehicle data
 
 ## Quick Start
 
@@ -36,8 +39,12 @@ cd /Users/alejandro/kavak-market-research
 # Activate environment
 source venv/bin/activate
 
-# Collect data and generate reports
-python scripts/run_monthly.py --month 2025-01
+# Collect all data and generate reports
+python -m src.main collect --source autocosmos
+python -m src.collectors.inegi_pdf_parser  # Download INEGI bulletins
+python scripts/collect_geographic_data.py   # Get state-level data
+python -m src.analyzers.new_cars
+python -m src.reporters.excel
 ```
 
 ### Collect New Car Data Only
@@ -55,6 +62,20 @@ For specific brands only:
 python -m src.main collect --source autocosmos --brands nissan,toyota,honda,chevrolet
 ```
 
+### Collect Geographic/State Data
+
+To get vehicle registrations and EV sales by state:
+
+```bash
+source venv/bin/activate
+python scripts/collect_geographic_data.py
+```
+
+This downloads:
+- VMRC annual data (vehicle registrations by state)
+- VMRC monthly data (national production/sales)
+- Generates EV/Hybrid sales estimates by state
+
 ### Generate Reports
 
 To generate Excel, CSV, and text reports from collected data:
@@ -67,13 +88,25 @@ python -m src.analyzers.new_cars
 
 ## Data Sources
 
-### New Cars
+### New Cars (National)
 
 | Source | Data | Status |
 |--------|------|--------|
-| Autocosmos | MSRP prices, all brands/models | ✅ Active |
-| INEGI RAIAVL | Production, sales, exports | ✅ Active (PDF bulletins) |
+| Autocosmos | MSRP prices, all brands/models | Active |
+| INEGI RAIAVL | Production, sales, exports | Active (PDF bulletins) |
 | AMIA | Industry bulletins | Manual download |
+
+### Geographic Data (By State)
+
+| Source | Data | Status |
+|--------|------|--------|
+| INEGI VMRC | Vehicle registrations by state | Active |
+| INEGI VMRC | Monthly national sales/production | Active |
+| INEGI + Statista | EV/Hybrid sales by state | Estimated |
+
+**Note**: State-level new car SALES data is not publicly available. We use:
+- Vehicle registrations as market size proxy
+- Estimated EV/Hybrid sales based on national totals and state distribution
 
 ### Used Cars
 
@@ -92,6 +125,16 @@ Reports are saved to `data/outputs/`:
 | `new_cars_catalog_{date}.csv` | Full catalog CSV |
 | `new_cars_by_brand_{date}.csv` | Brand summary CSV |
 | `new_cars_by_segment_{date}.csv` | Segment summary CSV |
+| `vehicle_registrations_by_city_{date}.csv` | State-level registrations |
+
+### Excel Workbook Sheets
+
+1. **Summary** - Overview stats (models, brands, price range)
+2. **By Brand** - Analysis by manufacturer
+3. **By Segment** - Analysis by price tier
+4. **Full Catalog** - All 600+ models with specs
+5. **EV & Hybrid** - Electric/hybrid vehicle analysis
+6. **By Geography** - State-level registrations and EV sales
 
 ## Analysis Dimensions
 
@@ -106,9 +149,22 @@ Reports are saved to `data/outputs/`:
 | Luxury | $800,000 - $1,200,000 |
 | Ultra | > $1,200,000 |
 
-### Geographic Coverage (Tier 1 Cities)
+### Geographic Coverage (12 Tier 1 Cities)
 
-Ciudad de México, Guadalajara, Monterrey, Puebla, Querétaro, León, Mérida, Tijuana, Aguascalientes, Cancún, Cuernavaca, Morelia
+| City | State | Market Share |
+|------|-------|--------------|
+| Ciudad de Mexico | CDMX | 24.4% |
+| Guadalajara | Jalisco | 17.4% |
+| Monterrey | Nuevo Leon | 8.4% |
+| Tijuana | Baja California | 9.1% |
+| Leon | Guanajuato | 9.0% |
+| Puebla | Puebla | 4.8% |
+| Queretaro | Queretaro | 3.3% |
+| Merida | Yucatan | 4.0% |
+| Cancun | Quintana Roo | 4.0% |
+| Cuernavaca | Morelos | 4.9% |
+| Morelia | Michoacan | 7.8% |
+| Aguascalientes | Aguascalientes | 2.9% |
 
 ### Brand Tiers
 
@@ -128,13 +184,20 @@ kavak-market-research/
 │   ├── analyzers/          # Analysis modules
 │   │   └── new_cars.py         # New car analysis
 │   ├── reporters/          # Report generation
-│   │   └── excel.py            # Excel/CSV reports
+│   │   └── excel.py            # Excel/CSV reports (incl. geographic)
 │   └── processors/         # Data standardization
+├── scripts/
+│   ├── collect_geographic_data.py  # State-level data collection
+│   └── scrape_inegi_ev_by_state.py # EV sales scraper
 ├── data/
-│   ├── raw/               # Raw collected data
+│   ├── raw/
 │   │   ├── inegi/             # INEGI PDF bulletins
+│   │   │   └── vmrc/          # VMRC state-level data
 │   │   └── autocosmos/        # Autocosmos JSON
 │   ├── processed/         # Cleaned data
+│   │   ├── city_vehicle_registrations_2023.json
+│   │   ├── ev_sales_by_state_estimated.json
+│   │   └── inegi_2025_summary.json
 │   └── outputs/           # Generated reports
 ├── config/
 │   └── settings.yaml      # Configuration
@@ -158,12 +221,13 @@ Key settings:
 
 ### Monthly Research Workflow
 
-1. **Collect new car data** from Autocosmos (all brands or top 10)
-2. **Fetch INEGI data** for production/sales volumes (if API configured)
-3. **Pull KAVAK data** for used car metrics (when API available)
-4. **Generate analysis** by brand, segment, body type
-5. **Create reports** in Excel, CSV, and text formats
-6. **Compare periods** for MoM and YoY trends
+1. **Collect new car data** from Autocosmos (all 65+ brands)
+2. **Download INEGI bulletins** for production/sales volumes
+3. **Collect geographic data** - state-level registrations and EV estimates
+4. **Pull KAVAK data** for used car metrics (when API available)
+5. **Generate analysis** by brand, segment, body type, geography
+6. **Create reports** in Excel, CSV, and text formats
+7. **Compare periods** for MoM and YoY trends
 
 ### Ad-hoc Analysis
 
@@ -171,6 +235,8 @@ For specific questions:
 - "What's the cheapest SUV from Toyota?" → Query the catalog
 - "How many EV models are available?" → Run EV/Hybrid analysis
 - "Compare Nissan vs Honda prices" → Generate brand comparison
+- "Sales by state" → Check geographic sheet in Excel report
+- "Which cities have most vehicles?" → vehicle_registrations_by_city CSV
 
 ## Scripts
 
@@ -178,42 +244,37 @@ For specific questions:
 
 - `src/main.py` - CLI entry point for data collection
 - `src/analyzers/new_cars.py` - Market analysis
-- `src/reporters/excel.py` - Report generation
+- `src/reporters/excel.py` - Report generation (all sheets)
 
-### Skill Scripts
+### Data Collection Scripts
 
-- `scripts/run_monthly.py` - Full monthly workflow
-- `scripts/quick_report.sh` - Quick report generation
+- `scripts/collect_geographic_data.py` - Download VMRC and generate state estimates
+- `scripts/scrape_inegi_ev_by_state.py` - Attempt to scrape INEGI interactive data
 
-## Additional Resources
+## Data Availability Notes
 
-### Reference Files
+### What's Publicly Available
 
-- **`references/data-sources.md`** - Detailed data source documentation
-- **`references/analysis-guide.md`** - Analysis methodology
+| Data | Source | Granularity | Available |
+|------|--------|-------------|-----------|
+| New car MSRP | Autocosmos | National | Yes |
+| Production | INEGI RAIAVL | National | Yes |
+| Sales | INEGI RAIAVL | National | Yes |
+| Exports | INEGI RAIAVL | National | Yes |
+| Vehicle Registrations | INEGI VMRC | By State | Yes |
+| EV/Hybrid Sales | INEGI RAIAVL | By State | Interactive only |
 
-### Example Outputs
+### What's NOT Publicly Available
 
-- **`examples/sample_report.txt`** - Sample text report
-- **`examples/brand_analysis.csv`** - Sample brand CSV
+- **New car sales by state** - Only national totals from INEGI/AMIA
+- **AMIA member data** - Requires membership
+- **Dealer-level data** - Proprietary
 
-## Common Tasks
+### Workarounds
 
-### Add New Brand to Analysis
-
-Brands are auto-discovered from Autocosmos. To filter specific brands:
-
-```bash
-python -m src.main collect --source autocosmos --brands brand1,brand2
-```
-
-### Update Price Buckets
-
-Edit `config/settings.yaml` under `price_buckets` section.
-
-### Add New City
-
-Edit `config/settings.yaml` under `geography.tier1_cities` or `tier2_cities`.
+1. **State market size**: Use VMRC registrations as proxy
+2. **EV sales by state**: Estimate from national totals + known state distribution
+3. **City-level data**: Will come from KAVAK API for used cars
 
 ## Troubleshooting
 
@@ -223,12 +284,20 @@ Edit `config/settings.yaml` under `geography.tier1_cities` or `tier2_cities`.
 - Verify Autocosmos website is accessible
 - Check rate limiting (1 request/second)
 
-### INEGI API fails
+### INEGI downloads fail
 
-- Register for API token at https://www.inegi.org.mx/servicios/api_indicadores.html
-- Set `INEGI_API_TOKEN` environment variable or in settings.yaml
+- INEGI requires browser-like headers
+- Check if PDF bulletin URLs have changed
+- Try downloading manually from inegi.org.mx
+
+### Geographic data missing
+
+- Run `python scripts/collect_geographic_data.py`
+- Check `data/raw/inegi/vmrc/` for downloaded files
+- Check `data/processed/` for generated JSON files
 
 ### Reports not generating
 
 - Ensure data exists in `data/raw/autocosmos/`
 - Check Python dependencies: `pip install -r requirements.txt`
+- Verify processed data files exist
