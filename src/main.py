@@ -39,7 +39,8 @@ def collect_inegi(year: int, month: int = None, output_dir: Path = None):
     logger.info(f"Fetched {len(raiavl_data)} RAIAVL records")
 
     # Save to JSON
-    output_file = output_dir / f"raiavl_{year}" + (f"_{month:02d}" if month else "") + ".json"
+    filename = f"raiavl_{year}" + (f"_{month:02d}" if month else "") + ".json"
+    output_file = output_dir / filename
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(
             [
@@ -70,7 +71,8 @@ def collect_inegi(year: int, month: int = None, output_dir: Path = None):
     vmrc_data = collector.fetch_vmrc_data(year, month)
     if vmrc_data:
         logger.info(f"Fetched {len(vmrc_data)} VMRC records")
-        vmrc_file = output_dir / f"vmrc_{year}" + (f"_{month:02d}" if month else "") + ".json"
+        vmrc_filename = f"vmrc_{year}" + (f"_{month:02d}" if month else "") + ".json"
+        vmrc_file = output_dir / vmrc_filename
         with open(vmrc_file, "w", encoding="utf-8") as f:
             json.dump(
                 [
