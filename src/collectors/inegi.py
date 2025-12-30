@@ -41,7 +41,14 @@ class INEGICollector:
     # API endpoint
     API_BASE = "https://www.inegi.org.mx/app/api/indicadores/desarrolladores/jsonxml"
 
+    # Monthly bulletin URLs (PDF format)
+    BULLETIN_URL_TEMPLATE = (
+        "https://www.inegi.org.mx/contenidos/saladeprensa/boletines/"
+        "{year}/rm_raiavl/rm_raiavl{year}_{month:02d}.pdf"
+    )
+
     # Known indicator IDs for automotive data (may need updating)
+    # Note: These need to be updated from INEGI's BIE catalog
     INDICATORS = {
         "produccion_vehiculos_ligeros": "6207067854",
         "ventas_vehiculos_ligeros": "6207067855",
@@ -51,9 +58,19 @@ class INEGICollector:
     def __init__(self):
         self.config = get_config()
         self.session = requests.Session()
+        # Use browser-like headers for INEGI (they block non-browser requests)
         self.session.headers.update({
-            "User-Agent": "KAVAK-Market-Research/1.0",
-            "Accept": "text/html,application/json,text/csv",
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
+            "Accept": (
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/avif,image/webp,image/apng,*/*;q=0.8,application/pdf"
+            ),
+            "Accept-Language": "es-MX,es;q=0.9,en;q=0.8",
+            "Connection": "keep-alive",
         })
 
     def fetch_raiavl_data(
