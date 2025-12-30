@@ -91,6 +91,9 @@ class ExcelReporter:
             # 5. EV/Hybrid Sheet
             self._write_ev_sheet(writer, analyzer, header_format, money_format, pct_format)
 
+            # 6. Geographic Sheet (State/City level)
+            self._write_geographic_sheet(writer, header_format, money_format, pct_format)
+
         logger.info(f"Generated Excel report: {output_path}")
         return output_path
 
@@ -274,6 +277,85 @@ class ExcelReporter:
                 if car.get('base_price_mxn'):
                     worksheet.write(start_row + 1 + i, 2, float(car['base_price_mxn']), money_format)
 
+    def _write_geographic_sheet(self, writer, header_format, money_format, pct_format):
+        """Write geographic/state analysis sheet"""
+        # Load city-level vehicle registration data
+        geo_file = Path("data/processed/city_vehicle_registrations_2023.json")
+        if not geo_file.exists():
+            logger.warning("Geographic data not found, skipping sheet")
+            return
+
+        with open(geo_file) as f:
+            city_data = json.load(f)
+
+        data = []
+        for city in city_data:
+            data.append({
+                'City': city['city'],
+                'State': city['state'],
+                'Total Autos': city['total_autos'],
+                'Total Trucks': city['total_trucks'],
+                'Total Motorcycles': city['total_motos'],
+                'Total Vehicles': city['total_vehicles'],
+                'Market Share': city['market_share_pct'] / 100,
+            })
+
+        df = pd.DataFrame(data)
+        df.to_excel(writer, sheet_name='By Geography', index=False, startrow=1)
+
+        # Format
+        worksheet = writer.sheets['By Geography']
+        worksheet.write(0, 0, 'Vehicle Registrations by Target City/State (2023)', header_format)
+
+        # Set column widths
+        worksheet.set_column('A:A', 18)
+        worksheet.set_column('B:B', 22)
+        worksheet.set_column('C:F', 15)
+        worksheet.set_column('G:G', 14)
+
+        # Format numbers
+        for row in range(2, len(data) + 2):
+            for col in range(2, 6):
+                worksheet.write_number(row, col, data[row-2][list(data[0].keys())[col]])
+            worksheet.write(row, 6, data[row-2]['Market Share'], pct_format)
+
+        # Add totals row
+        total_row = len(data) + 2
+        worksheet.write(total_row, 0, 'TOTAL', header_format)
+        worksheet.write_number(total_row, 2, sum(c['total_autos'] for c in city_data))
+        worksheet.write_number(total_row, 3, sum(c['total_trucks'] for c in city_data))
+        worksheet.write_number(total_row, 4, sum(c['total_motos'] for c in city_data))
+        worksheet.write_number(total_row, 5, sum(c['total_vehicles'] for c in city_data))
+        worksheet.write(total_row, 6, 1.0, pct_format)
+
+        # Add note
+        note_row = total_row + 2
+        worksheet.write(note_row, 0, 'Note: Registrations from INEGI VMRC. City values are state-level proxies.')
+
+        # Add EV/Hybrid sales section
+        ev_file = Path("data/processed/ev_sales_by_state_estimated.json")
+        if ev_file.exists():
+            with open(ev_file) as f:
+                ev_data = json.load(f)
+
+            ev_start_row = note_row + 3
+            worksheet.write(ev_start_row, 0, 'Estimated EV/Hybrid Sales by City/State', header_format)
+
+            ev_headers = ['City', 'State', 'EV Sales 2023', 'EV Sales 2024', 'EV Share %']
+            for col, header in enumerate(ev_headers):
+                worksheet.write(ev_start_row + 1, col, header, header_format)
+
+            for i, city_ev in enumerate(ev_data.get('by_city_state', [])):
+                row = ev_start_row + 2 + i
+                worksheet.write(row, 0, city_ev['city'])
+                worksheet.write(row, 1, city_ev['state'])
+                worksheet.write_number(row, 2, city_ev['estimated_ev_sales_2023'])
+                worksheet.write_number(row, 3, city_ev['estimated_ev_sales_2024'])
+                worksheet.write(row, 4, city_ev['ev_hybrid_share_pct'] / 100, pct_format)
+
+            ev_note_row = ev_start_row + 2 + len(ev_data.get('by_city_state', [])) + 1
+            worksheet.write(ev_note_row, 0, 'Note: EV sales estimated from INEGI + Statista data. Actual state data not publicly available.')
+
 
 def generate_csv_exports(catalog_path: Optional[Path] = None) -> list[Path]:
     """
@@ -350,6 +432,30 @@ def generate_csv_exports(catalog_path: Optional[Path] = None) -> list[Path]:
     segment_df.to_csv(segment_file, index=False)
     files.append(segment_file)
     logger.info(f"Generated: {segment_file}")
+
+    # Geographic summary CSV
+    geo_file = Path("data/processed/city_vehicle_registrations_2023.json")
+    if geo_file.exists():
+        with open(geo_file) as f:
+            city_data = json.load(f)
+
+        geo_df = pd.DataFrame([
+            {
+                'city': c['city'],
+                'state': c['state'],
+                'total_autos': c['total_autos'],
+                'total_trucks': c['total_trucks'],
+                'total_motos': c['total_motos'],
+                'total_vehicles': c['total_vehicles'],
+                'market_share_pct': c['market_share_pct'],
+            }
+            for c in city_data
+        ])
+
+        geo_csv_file = output_dir / f"vehicle_registrations_by_city_{date.today().isoformat()}.csv"
+        geo_df.to_csv(geo_csv_file, index=False)
+        files.append(geo_csv_file)
+        logger.info(f"Generated: {geo_csv_file}")
 
     return files
 
